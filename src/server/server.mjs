@@ -1,8 +1,4 @@
-To fix the build error, `src/server/server.mjs` needs to properly export `WispServer` from the `@mercuryworkshop/wisp-js` package (which is the standard library for running a Wisp server). It also needs to actually handle the WebSocket upgrade request for the `/wisp/` route so the server works when the client connects.
 
-Here is the updated `src/server/server.mjs`:
-
-```javascript
 /**
  * Scramjet Cloudflare Worker Entry Point
  * 
@@ -776,4 +772,3 @@ export default {
     });
   }
 };
-```
