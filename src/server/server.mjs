@@ -1,8 +1,17 @@
+To fix the build error, `src/server/server.mjs` needs to properly export `WispServer` from the `@mercuryworkshop/wisp-js` package (which is the standard library for running a Wisp server). It also needs to actually handle the WebSocket upgrade request for the `/wisp/` route so the server works when the client connects.
+
+Here is the updated `src/server/server.mjs`:
+
+```javascript
 /**
  * Scramjet Cloudflare Worker Entry Point
  * 
- * Serves the Scramjet proxy UI and associated static assets.
+ * Serves the Scramjet proxy UI, associated static assets, and the Wisp WebSocket server.
  */
+
+import { WispServer } from "@mercuryworkshop/wisp-js";
+// Export WispServer in case other modules (like src/server/index.js) need to import it directly
+export { WispServer };
 
 // Import the EpoxyTransport script as a raw string to serve it to the client
 import epoxyScript from "../epoxy/index.js?raw";
@@ -700,6 +709,38 @@ export default {
       return new Response(null, { status: 204, headers: baseHeaders });
     }
 
+    // --- Wisp WebSocket Handler ---
+    if (pathname.startsWith("/wisp/")) {
+      const upgradeHeader = request.headers.get("Upgrade");
+      if (upgradeHeader !== "websocket") {
+        return new Response("Expected Upgrade: websocket", { 
+          status: 426,
+          headers: baseHeaders
+        });
+      }
+
+      const [client, server] = Object.values(new WebSocketPair());
+
+      try {
+        // Initialize the Wisp server on the server side of the WebSocket pair
+        const wispServer = new WispServer({
+          socket: server,
+          // You can pass additional configuration options here if needed
+        });
+        
+        // In Cloudflare Workers, WispServer takes over the socket automatically.
+      } catch (err) {
+        console.error("Failed to initialize Wisp server:", err);
+        server.close(1011, "Unexpected error");
+        return new Response("Internal Server Error", { status: 500 });
+      }
+
+      return new Response(null, {
+        status: 101,
+        webSocket: client,
+      });
+    }
+
     // --- Serve homepage ---
     if (pathname === "/" || pathname === "/index.html") {
       return new Response(HTML_CONTENT, {
@@ -735,3 +776,4 @@ export default {
     });
   }
 };
+```
