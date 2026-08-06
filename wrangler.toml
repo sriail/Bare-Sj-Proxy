@@ -1,5 +1,5 @@
 # wrangler.toml
-name = "bare-js-wisp-server"
+name = "bare-sj-proxy"
 main = "src/server/index.js"
 compatibility_date = "2023-08-01"
 
