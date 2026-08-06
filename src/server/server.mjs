@@ -1,13 +1,8 @@
-
 /**
  * Scramjet Cloudflare Worker Entry Point
  * 
- * Serves the Scramjet proxy UI, associated static assets, and the Wisp WebSocket server.
+ * Serves the Scramjet proxy UI and associated static assets.
  */
-
-import { WispServer } from "@mercuryworkshop/wisp-js";
-// Export WispServer in case other modules (like src/server/index.js) need to import it directly
-export { WispServer };
 
 // Import the EpoxyTransport script as a raw string to serve it to the client
 import epoxyScript from "../epoxy/index.js?raw";
@@ -651,11 +646,11 @@ const ASSETS = {
     contentType: "application/javascript"
   },
   "/scramjet/scramjet.js": {
-    body: "// Replace with the real scramjet.js bundle. Exposes window.$scramjet.defaultConfig.",
+    body: "// Replace with the real scramjet.js bundle. Exposes window.\$scramjet.defaultConfig.",
     contentType: "application/javascript"
   },
   "/controller/controller.api.js": {
-    body: "// Replace with the real controller bundle. Exposes window.$scramjetController.Controller.",
+    body: "// Replace with the real controller bundle. Exposes window.\$scramjetController.Controller.",
     contentType: "application/javascript"
   },
   "/epoxy/index.js": {
@@ -703,38 +698,6 @@ export default {
     // Preflight
     if (request.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: baseHeaders });
-    }
-
-    // --- Wisp WebSocket Handler ---
-    if (pathname.startsWith("/wisp/")) {
-      const upgradeHeader = request.headers.get("Upgrade");
-      if (upgradeHeader !== "websocket") {
-        return new Response("Expected Upgrade: websocket", { 
-          status: 426,
-          headers: baseHeaders
-        });
-      }
-
-      const [client, server] = Object.values(new WebSocketPair());
-
-      try {
-        // Initialize the Wisp server on the server side of the WebSocket pair
-        const wispServer = new WispServer({
-          socket: server,
-          // You can pass additional configuration options here if needed
-        });
-        
-        // In Cloudflare Workers, WispServer takes over the socket automatically.
-      } catch (err) {
-        console.error("Failed to initialize Wisp server:", err);
-        server.close(1011, "Unexpected error");
-        return new Response("Internal Server Error", { status: 500 });
-      }
-
-      return new Response(null, {
-        status: 101,
-        webSocket: client,
-      });
     }
 
     // --- Serve homepage ---
